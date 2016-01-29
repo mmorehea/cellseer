@@ -24,7 +24,7 @@ def main(path):
 	svmutil.svm_save_model('n.model', m)
 	
 	p_label, p_acc, p_val = svmutil.svm_predict(label, points, m, '-b 1')
-	print 'banana'
+	
 	return p_acc
 			
 if __name__ == "__main__":

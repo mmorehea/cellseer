@@ -1,0 +1,10 @@
+NOTES
+
+58 models currently
+21,545,758 total
+370k points average
+
+rest 262MB
+kmeans 557kb
+
+

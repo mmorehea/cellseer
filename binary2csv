@@ -1,0 +1,23 @@
+import cPickle as pickle
+import numpy
+import os
+import sys
+import svmutil
+
+def main(path):
+	
+	label = []
+	points = []
+	for u in os.listdir(path): 
+		if u[-2:] == 'WC':
+			
+			filePath = path+u
+			WC = pickle.load(open(filePath, 'rb'))
+			label.append(u[1])
+			f = open(filepath + '.csv', 'w')
+			f.write(WC)
+			
+			
+if __name__ == "__main__":
+	path = sys.argv[1] 
+	main(path)			

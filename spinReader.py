@@ -14,7 +14,7 @@ for u in os.listdir(path):
 		
 		filePath = path+u
 		print filePath	
-		f = open(filePath, 'r')
+		f = open(filePath, 'rb')
 		lineCount = 0
 		for line in f:
 			lineCount += 1;

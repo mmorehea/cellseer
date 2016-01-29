@@ -3,7 +3,7 @@ import numpy
 import os
 import sys
 import svmutil
-
+#R CMD BATCH [
 def main(path, k):
 	
 	prabs = []
@@ -15,7 +15,7 @@ def main(path, k):
 		testPoint = []
 		wcCount = 0
 		for u in os.listdir(path): 
-			if u[-2:] == 'WC':
+			if u[-2:] == 'WC':r
 				wcCount += 1
 				filePath = path+u
 				WC = pickle.load(open(filePath, 'rb'))
@@ -40,7 +40,7 @@ def main(path, k):
 	print prabs		
 	print lns
 	print sum(prabs)/float(len(prabs))
-	print 'ba'
+	
 	return sum(prabs)/float(len(prabs))
 
 if __name__ == "__main__":			

@@ -11,6 +11,7 @@
 
 import numpy as np
 import code
+import os
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.datasets import load_digits
@@ -19,6 +20,7 @@ from sklearn.preprocessing import scale
 from sklearn import cluster
 import math
 import svmutil
+import glob
 from sklearn import svm, grid_search
 from sklearn import cross_validation
 from sklearn.cross_validation import train_test_split
@@ -27,15 +29,18 @@ from sklearn.cross_validation import LeaveOneOut
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from collections import defaultdict
+from sklearn.neighbors import KNeighborsClassifier
 import time
+import subprocess
 
 
-# ████████ ██ ███	███ ███████ ██████
-#	██	██ ████  ████ ██	  ██   ██
-#	██	██ ██ ████ ██ █████   ██████
-#	██	██ ██  ██  ██ ██	  ██   ██
-#	██	██ ██	  ██ ███████ ██   ██
-
+# /*
+# ████████ ██ ███    ███ ███████ ██████
+#    ██    ██ ████  ████ ██      ██   ██
+#    ██    ██ ██ ████ ██ █████   ██████
+#    ██    ██ ██  ██  ██ ██      ██   ██
+#    ██    ██ ██      ██ ███████ ██   ██
+# */
 def timeme(method):
 	def wrapper(*args, **kw):
 		print('Starting ' + method.__name__)
@@ -43,11 +48,23 @@ def timeme(method):
 		startTime = int(round(time.time() * 1000))
 		result = method(*args, **kw)
 		endTime = int(round(time.time() * 1000))
-		printt('Function ' + method.__name__ + ' complete ', time.time() - start_time)
+		timer_print('Function ' + method.__name__ + ' complete ', time.time() - start_time)
 		print(endTime - startTime, 'ms')
 		return result
 
 	return wrapper
+
+
+# /*
+# ████████ ██ ███    ███ ███████ ██████          ██████  ██████  ██ ███    ██ ████████
+#    ██    ██ ████  ████ ██      ██   ██         ██   ██ ██   ██ ██ ████   ██    ██
+#    ██    ██ ██ ████ ██ █████   ██████          ██████  ██████  ██ ██ ██  ██    ██
+#    ██    ██ ██  ██  ██ ██      ██   ██         ██      ██   ██ ██ ██  ██ ██    ██
+#    ██    ██ ██      ██ ███████ ██   ██ ███████ ██      ██   ██ ██ ██   ████    ██
+# */
+def timer_print(message, time):
+	string = '{0:.<50}'.format(message) + ' ' + str(time) + ' seconds'
+	print(string)
 
 
 # ██   ██ ███████  ██████  ██	  ██████
@@ -87,12 +104,13 @@ def kfold(data, labels, k):
 	return sum(prabs) / float(len(prabs))
 
 
-# ██ ███	███ ██████   ██████  ██████  ████████
-# ██ ████  ████ ██   ██ ██	██ ██   ██	██
-# ██ ██ ████ ██ ██████  ██	██ ██████	 ██
-# ██ ██  ██  ██ ██	  ██	██ ██   ██	██
-# ██ ██	  ██ ██	   ██████  ██   ██	██
-
+# /*
+# ██ ███    ███ ██████   ██████  ██████  ████████
+# ██ ████  ████ ██   ██ ██    ██ ██   ██    ██
+# ██ ██ ████ ██ ██████  ██    ██ ██████     ██
+# ██ ██  ██  ██ ██      ██    ██ ██   ██    ██
+# ██ ██      ██ ██       ██████  ██   ██    ██
+# */
 @timeme
 def import_csv_data(data_path, response_path):
 	data = np.genfromtxt(data_path, dtype=float, delimiter=',')
@@ -116,11 +134,13 @@ def import_csv_data(data_path, response_path):
 	return data, response
 
 
-# ██████  ██	   █████  ██ ███	██ ███████ ██	██ ███	███
-# ██   ██ ██	  ██   ██ ██ ████   ██ ██	  ██	██ ████  ████
-# ██████  ██	  ███████ ██ ██ ██  ██ ███████ ██	██ ██ ████ ██
-# ██	  ██	  ██   ██ ██ ██  ██ ██	  ██  ██  ██  ██  ██  ██
-# ██	  ███████ ██   ██ ██ ██   ████ ███████   ████   ██	  ██
+# /*
+# ██████  ██       █████  ██ ███    ██         ███████ ██    ██ ███    ███
+# ██   ██ ██      ██   ██ ██ ████   ██         ██      ██    ██ ████  ████
+# ██████  ██      ███████ ██ ██ ██  ██         ███████ ██    ██ ██ ████ ██
+# ██      ██      ██   ██ ██ ██  ██ ██              ██  ██  ██  ██  ██  ██
+# ██      ███████ ██   ██ ██ ██   ████ ███████ ███████   ████   ██      ██
+# */
 # kern = 'rbf', 'linear', 'poly', 'sigmoid'
 @timeme
 def plain_svm(data, response, kern='linear'):
@@ -246,13 +266,12 @@ def mean_shift(data, response):
 
 
 # /*
-# ██████  ██████  ███████  ██████  █████  ███	██
-# ██   ██ ██   ██ ██	  ██	  ██   ██ ████   ██
-# ██   ██ ██████  ███████ ██	  ███████ ██ ██  ██
-# ██   ██ ██   ██	  ██ ██	  ██   ██ ██  ██ ██
+# ██████  ██████  ███████  ██████  █████  ███    ██
+# ██   ██ ██   ██ ██      ██      ██   ██ ████   ██
+# ██   ██ ██████  ███████ ██      ███████ ██ ██  ██
+# ██   ██ ██   ██      ██ ██      ██   ██ ██  ██ ██
 # ██████  ██████  ███████  ██████ ██   ██ ██   ████
 # */
-@timeme
 def dbscan(data, response):
 	print 'DBSCAN'
 	af = cluster.DBSCAN().fit(data)
@@ -267,11 +286,11 @@ def dbscan(data, response):
 
 
 # /*
-# ██   ██ ███	███ ███████  █████  ███	██ ███████
-# ██  ██  ████  ████ ██	  ██   ██ ████   ██ ██
+# ██   ██ ███    ███ ███████  █████  ███    ██ ███████
+# ██  ██  ████  ████ ██      ██   ██ ████   ██ ██
 # █████   ██ ████ ██ █████   ███████ ██ ██  ██ ███████
-# ██  ██  ██  ██  ██ ██	  ██   ██ ██  ██ ██	  ██
-# ██   ██ ██	  ██ ███████ ██   ██ ██   ████ ███████
+# ██  ██  ██  ██  ██ ██      ██   ██ ██  ██ ██      ██
+# ██   ██ ██      ██ ███████ ██   ██ ██   ████ ███████
 # */
 def kmeans(data, response):
 	km = KMeans(init='k-means++', n_clusters=4, n_init=10)
@@ -288,37 +307,110 @@ def kmeans(data, response):
 
 
 # /*
-# ████████ ██ ███	███ ███████		 ██████  ██████  ██ ███	██ ████████
-#	██	██ ████  ████ ██			  ██   ██ ██   ██ ██ ████   ██	██
-#	██	██ ██ ████ ██ █████		   ██████  ██████  ██ ██ ██  ██	██
-#	██	██ ██  ██  ██ ██			  ██	  ██   ██ ██ ██  ██ ██	██
-#	██	██ ██	  ██ ███████ ███████ ██	  ██   ██ ██ ██   ████	██
+# ██   ██ ███    ██ ███    ██          ██████ ██       █████  ███████ ███████ ██ ███████ ██ ███████ ██████
+# ██  ██  ████   ██ ████   ██         ██      ██      ██   ██ ██      ██      ██ ██      ██ ██      ██   ██
+# █████   ██ ██  ██ ██ ██  ██         ██      ██      ███████ ███████ ███████ ██ █████   ██ █████   ██████
+# ██  ██  ██  ██ ██ ██  ██ ██         ██      ██      ██   ██      ██      ██ ██ ██      ██ ██      ██   ██
+# ██   ██ ██   ████ ██   ████ ███████  ██████ ███████ ██   ██ ███████ ███████ ██ ██      ██ ███████ ██   ██
 # */
-def printt(message, time):
-	string = '{0:.<50}'.format(message) + ' ' + str(time) + ' seconds'
-	print(string)
+def knn_classifier(data, response):
+	X_train, X_test, y_train, y_test = train_test_split(data, response)
+	neigh = KNeighborsClassifier(n_neighbors=3)
+	d = neigh.fit(X_train, y_train).score(X_test, y_test)
+	code.interact(local=locals())
 
+def radius_knn(data, response)
 
 # /*
-# ████████ ███████ ███████ ████████	  ███████ ██	██ ██ ████████ ███████
-#	██	██	  ██		 ██		 ██	  ██	██ ██	██	██
-#	██	█████   ███████	██		 ███████ ██	██ ██	██	█████
-#	██	██		   ██	██			  ██ ██	██ ██	██	██
-#	██	███████ ███████	██ ███████ ███████  ██████  ██	██	███████
+# ████████ ███████ ███████ ████████
+#    ██    ██      ██         ██
+#    ██    █████   ███████    ██
+#    ██    ██           ██    ██
+#    ██    ███████ ███████    ██
 # */
 def test_suite():
 	print('Importing')
 	data, response = import_csv_data('./encodings.csv', './junk2.csv')
 	# kfold(data, response, 2)
-	plain_svm(data, response, 'linear')
-	make_confusion_matrix(data, response, 'linear')
-	make_confusion_matrix(data, response, 'poly')
-	make_confusion_matrix(data, response, 'rbf')
-	# loo(data, response, 'linear', 3)
-	# grid(data, response)
-	ap(data, response)
-	# mean_shift(data, response)
-	# dbscan(data, response)
-	kmeans(data, response)
+	# plain_svm(data, response, 'linear')
+	# make_confusion_matrix(data, response, 'linear')
+	# make_confusion_matrix(data, response, 'poly')
+	# make_confusion_matrix(data, response, 'rbf')
+	# # loo(data, response, 'linear', 3)
+	# # grid(data, response)
+	# ap(data, response)
+	# # mean_shift(data, response)
+	# # dbscan(data, response)
+	# kmeans(data, response)
+	knn_classifier(data, response)
+
+# /*
+#  ██████  ███████ ████████      ███████ ██ ██      ███████         ██      ███████ ███    ██
+# ██       ██         ██         ██      ██ ██      ██              ██      ██      ████   ██
+# ██   ███ █████      ██         █████   ██ ██      █████           ██      █████   ██ ██  ██
+# ██    ██ ██         ██         ██      ██ ██      ██              ██      ██      ██  ██ ██
+#  ██████  ███████    ██ ███████ ██      ██ ███████ ███████ ███████ ███████ ███████ ██   ████
+# */
+def get_file_len(fname):
+	p = subprocess.Popen(['wc', '-l', fname], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	result, err = p.communicate()
+	if p.returncode != 0:
+		raise IOError(err)
+	return int(result.strip().split()[0])
+
+# /*
+# ███████ ██████  ██      ██ ████████       █████  ███    ██ ██████          ██     ██ ██████  ██ ████████ ███████
+# ██      ██   ██ ██      ██    ██         ██   ██ ████   ██ ██   ██         ██     ██ ██   ██ ██    ██    ██
+# ███████ ██████  ██      ██    ██         ███████ ██ ██  ██ ██   ██         ██  █  ██ ██████  ██    ██    █████
+#      ██ ██      ██      ██    ██         ██   ██ ██  ██ ██ ██   ██         ██ ███ ██ ██   ██ ██    ██    ██
+# ███████ ██      ███████ ██    ██ ███████ ██   ██ ██   ████ ██████  ███████  ███ ███  ██   ██ ██    ██    ███████
+# */
+def split_and_write_spin_images(path, percent_to_pick):
+	list_of_spins = glob.glob(path + '*.pcdspinImages.bin')
+	cnt = 0
+	for each in list_of_spins:
+		print each
+		print cnt
+		cnt += 1
+
+		spin_file = open(each)
+		spin_file_lines = spin_file.readlines()
+		spin_file.close()
+
+		spin_file_lines = [l.strip()[1:-1].split(',') for l in spin_file_lines]
+		spin_file_lines = np.asarray(spin_file_lines)
+		spin_file_lines = spin_file_lines.astype('float')
+		xx, yy = spin_file_lines.shape
+		xToPick = 2000
+		picks = np.random.choice(xx, xToPick, replace=False)
+
+		# parse file name
+		age = each.split('/')[-1].split('_')[0][1:]
+		# cell = each.split('/')[-1].split('_')[2].split('.')[1:]
+		cell = each.split('/')[-1].split('_')[2].split('.')[0][1:]
+		print age, ' ', cell
+		nonPick = np.setdiff1d(np.asarray(range(0, xx)), picks)
+		if not os.path.exists('./picked/'):
+			os.makedirs('./picked/')
+		spin_file_lines_picked = spin_file_lines[picks]
+		fileName = './picked1/' + age + '_' + cell + '_vectorspicked.csv'
+		np.savetxt(fileName, spin_file_lines_picked, delimiter=',')
+		spin_file_lines_picked = None
+
+		spin_file_lines_notpicked = spin_file_lines[nonPick]
+		fileName = './picked1/' + age + '_' + cell + '_vectorsnotpicked.csv'
+		np.savetxt(fileName, spin_file_lines_notpicked, delimiter=',')
+		spin_file_lines_notpicked = None
+
+
+# /*
+# ███    ███  █████  ████████ ██       █████  ██████
+# ████  ████ ██   ██    ██    ██      ██   ██ ██   ██
+# ██ ████ ██ ███████    ██    ██      ███████ ██████
+# ██  ██  ██ ██   ██    ██    ██      ██   ██ ██   ██
+# ██      ██ ██   ██    ██    ███████ ██   ██ ██████
+# */
+def matlab_make_fisher(path_to_split_spins, number_of_clusters):
+	process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r run getAndSave.m(' + path_to_split_spins + ', ' + str(number_of_clusters) + ')')
 
 test_suite()

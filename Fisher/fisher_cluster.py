@@ -8,15 +8,12 @@
 #  ██████ ███████ ███████ ███████ ███████ ███████ ███████ ██   ██
 # Written by Michael Morehead
 # WVU Center for Neuroscience, 2016
-
+import matlab.engine
 import numpy as np
 import code
 import os
 from sklearn import metrics
 from sklearn.cluster import KMeans
-from sklearn.datasets import load_digits
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import scale
 from sklearn import cluster
 import math
 import svmutil
@@ -33,6 +30,7 @@ from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier
 import time
 import subprocess
 import flatten
+import shutil
 
 
 # /*
@@ -336,8 +334,9 @@ def radius_knn(data, response, rad):
 #    ██    ███████ ███████    ██
 # */
 def test_suite():
-	print('Importing')
-	data, response = import_csv_data('./encodings.csv', './junk2.csv')
+	print("Starting Tests")
+	# print('Importing')
+	# data, response = import_csv_data('./encodings.csv', './junk2.csv')
 	# kfold(data, response, 2)
 	# plain_svm(data, response, 'linear')
 	# make_confusion_matrix(data, response, 'linear')
@@ -349,9 +348,10 @@ def test_suite():
 	# # mean_shift(data, response)
 	# # dbscan(data, response)
 	# kmeans(data, response)
-	#knn_classifier(data, response)
-	#radius_knn(data, response, 1000.0)
-	swc2obj('./swc2obj/swcs')
+	# knn_classifier(data, response)
+	# radius_knn(data, response, 1000.0)
+	swc2obj('swc2obj/swcs')
+
 
 # /*
 #  ██████  ███████ ████████      ███████ ██ ██      ███████         ██      ███████ ███    ██
@@ -431,8 +431,15 @@ def matlab_make_fisher(path_to_split_spins, number_of_clusters):
 #      ██ ██ ███ ██ ██      ██      ██    ██ ██   ██ ██   ██
 # ███████  ███ ███   ██████ ███████  ██████  ██████   █████
 # */
+@timeme
 def swc2obj(path):
+	print('Beginning swc2obj conversion')
+	matlab_engine = matlab.engine.start_matlab()
+
 	if not os.path.exists('./tempobj/'):
+		os.makedirs('./tempobj/')
+	else:
+		shutil.rmtree('./tempobj/')
 		os.makedirs('./tempobj/')
 	if not os.path.exists('./convertedOBJs/'):
 		os.makedirs('./convertedOBJs/')
@@ -440,8 +447,13 @@ def swc2obj(path):
 	for each in list_of_swcs:
 		if len(each) < 3:
 			continue
-		process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r \"swc2obj(each);quit;\"')
-
+		print(each)
+		# process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r \"swc2obj(each);quit;\"')
+		try:
+			matlab_engine.swc2obj(each, nargout=0)
+			flatten.main('tempobj/', each)
+		except:
+			continue
 
 
 test_suite()

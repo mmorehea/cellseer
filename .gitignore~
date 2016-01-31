@@ -1,0 +1,6 @@
+data/
+allcells/
+*.pyc
+Fisher/picks/
+SWC_data/
+

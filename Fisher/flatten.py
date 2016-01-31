@@ -30,8 +30,8 @@ def main(dirn, name_cell):
                 os.remove(obj)
         d += 1
         objs = glob.glob(os.path.join(dirn, '*.obj'))
-    shutil.move(objs[0], os.path.join('/home/feynman/objout/' + os.path.basename(name_cell) + '.obj'))
-    print("Saving to: " + os.path.join('/home/feynman/objout/' + os.path.basename(name_cell) + '.obj'))
+    shutil.move(objs[0], os.path.join('convertedOBJs/' + os.path.basename(name_cell) + '.obj'))
+    print("Saving to: " + os.path.join('convertedOBJs/' + os.path.basename(name_cell) + '.obj'))
 
 
 if __name__ == '__main__':

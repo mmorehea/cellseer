@@ -29,9 +29,10 @@ from sklearn.cross_validation import LeaveOneOut
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from collections import defaultdict
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier
 import time
 import subprocess
+import flatten
 
 
 # /*
@@ -317,9 +318,15 @@ def knn_classifier(data, response):
 	X_train, X_test, y_train, y_test = train_test_split(data, response)
 	neigh = KNeighborsClassifier(n_neighbors=3)
 	d = neigh.fit(X_train, y_train).score(X_test, y_test)
-	code.interact(local=locals())
+	print 'knn classifier accuracy: ' + str(d)
 
-def radius_knn(data, response)
+
+def radius_knn(data, response, rad):
+	X_train, X_test, y_train, y_test = train_test_split(data, response)
+	neigh = RadiusNeighborsClassifier(radius=rad)
+	d = neigh.fit(X_train, y_train).score(X_test, y_test)
+	print 'knn radius classifier accuracy: ' + str(d)
+
 
 # /*
 # ████████ ███████ ███████ ████████
@@ -342,7 +349,9 @@ def test_suite():
 	# # mean_shift(data, response)
 	# # dbscan(data, response)
 	# kmeans(data, response)
-	knn_classifier(data, response)
+	#knn_classifier(data, response)
+	#radius_knn(data, response, 1000.0)
+	swc2obj('./swc2obj/swcs')
 
 # /*
 #  ██████  ███████ ████████      ███████ ██ ██      ███████         ██      ███████ ███    ██
@@ -357,6 +366,7 @@ def get_file_len(fname):
 	if p.returncode != 0:
 		raise IOError(err)
 	return int(result.strip().split()[0])
+
 
 # /*
 # ███████ ██████  ██      ██ ████████       █████  ███    ██ ██████          ██     ██ ██████  ██ ████████ ███████
@@ -404,13 +414,34 @@ def split_and_write_spin_images(path, percent_to_pick):
 
 
 # /*
-# ███    ███  █████  ████████ ██       █████  ██████
-# ████  ████ ██   ██    ██    ██      ██   ██ ██   ██
-# ██ ████ ██ ███████    ██    ██      ███████ ██████
-# ██  ██  ██ ██   ██    ██    ██      ██   ██ ██   ██
-# ██      ██ ██   ██    ██    ███████ ██   ██ ██████
+# ██████  ██    ██ ██ ██      ██████          ███████ ██ ███████ ██   ██ ███████ ██████
+# ██   ██ ██    ██ ██ ██      ██   ██         ██      ██ ██      ██   ██ ██      ██   ██
+# ██████  ██    ██ ██ ██      ██   ██         █████   ██ ███████ ███████ █████   ██████
+# ██   ██ ██    ██ ██ ██      ██   ██         ██      ██      ██ ██   ██ ██      ██   ██
+# ██████   ██████  ██ ███████ ██████  ███████ ██      ██ ███████ ██   ██ ███████ ██   ██
 # */
 def matlab_make_fisher(path_to_split_spins, number_of_clusters):
-	process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r run getAndSave.m(' + path_to_split_spins + ', ' + str(number_of_clusters) + ')')
+	process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r run getAndSave(' + path_to_split_spins + ', ' + str(number_of_clusters) + ')')
+
+
+# /*
+# ███████ ██     ██  ██████ ██████   ██████  ██████       ██
+# ██      ██     ██ ██           ██ ██    ██ ██   ██      ██
+# ███████ ██  █  ██ ██       █████  ██    ██ ██████       ██
+#      ██ ██ ███ ██ ██      ██      ██    ██ ██   ██ ██   ██
+# ███████  ███ ███   ██████ ███████  ██████  ██████   █████
+# */
+def swc2obj(path):
+	if not os.path.exists('./tempobj/'):
+		os.makedirs('./tempobj/')
+	if not os.path.exists('./convertedOBJs/'):
+		os.makedirs('./convertedOBJs/')
+	list_of_swcs = glob.glob(os.path.join(path, '*.swc'))
+	for each in list_of_swcs:
+		if len(each) < 3:
+			continue
+		process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r \"swc2obj(each);quit;\"')
+
+
 
 test_suite()

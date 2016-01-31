@@ -1,0 +1,13 @@
+Converted 10 SWCs to OBJ
+
+Started with 2.6 MB, became 67.8 MB, 26X
+
+Took 240 seconds, 4 mins.
+92 seconds/mb
+
+
+Have 4269 SWCS
+totally 775 MB
+Predicted size ~20GB
+
+will take 19 hours to convert.

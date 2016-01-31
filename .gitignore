@@ -2,3 +2,6 @@ data/
 allcells/
 *.pyc
 Fisher/picks/
+SWC_data/
+Fisher/convertedOBJs/
+Fisher/tempobj/

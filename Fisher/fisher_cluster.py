@@ -353,7 +353,7 @@ def test_suite():
 	# kmeans(data, response)
 	# knn_classifier(data, response)
 	# radius_knn(data, response, 1000.0)
-	swc2obj('/media/mdm/Projects/cellseer/SWC_data')
+	swc2obj('/home/mdm/Projects/cellseer/SWC_data')
 
 
 # /*

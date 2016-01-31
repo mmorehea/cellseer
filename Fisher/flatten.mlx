@@ -6,4 +6,5 @@
   <Param type="RichBool" value="true" name="MergeVertices"/>
   <Param type="RichBool" value="false" name="AlsoUnreferenced"/>
  </filter>
+
 </FilterScript>

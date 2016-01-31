@@ -16,7 +16,6 @@ from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn import cluster
 import math
-#import svmutil
 import glob
 from sklearn import svm, grid_search
 from sklearn import cross_validation
@@ -74,6 +73,10 @@ def timer_print(message, time):
 
 @timeme
 def kfold(data, labels, k):
+	try:
+		import svmutil
+	except:
+		return 0
 	prabs = []
 
 	for xxx in range(0, 10):
@@ -350,7 +353,7 @@ def test_suite():
 	# kmeans(data, response)
 	# knn_classifier(data, response)
 	# radius_knn(data, response, 1000.0)
-	swc2obj('/media/feynman/4TBDrive/cellseer/SWC_data')
+	swc2obj('/media/mdm/Projects/cellseer/SWC_data')
 
 
 # /*
@@ -444,7 +447,7 @@ def swc2obj(path):
 	if not os.path.exists('./convertedOBJs/'):
 		os.makedirs('./convertedOBJs/')
 	list_of_swcs = glob.glob(os.path.join(path, '*.swc'))
-        print('Processing ' + str(len(list_of_swcs) + ' SWCs')
+	print('Processing ' + str(len(list_of_swcs)) + ' SWCs')
 	for each in list_of_swcs:
 		if len(each) < 3:
 			continue

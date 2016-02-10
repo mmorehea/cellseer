@@ -353,7 +353,7 @@ def test_suite():
 	# kmeans(data, response)
 	# knn_classifier(data, response)
 	# radius_knn(data, response, 1000.0)
-	swc2obj('/home/mdm/Projects/cellseer/SWC_data')
+	obj2spin('/home/mdm/Projects/cellseer/Fisher/objout/')
 
 
 # /*
@@ -447,9 +447,14 @@ def swc2obj(path):
 	if not os.path.exists('./convertedOBJs/'):
 		os.makedirs('./convertedOBJs/')
 	list_of_swcs = glob.glob(os.path.join(path, '*.swc'))
+	list_of_objs = glob.glob('./objout/*.obj')
 	print('Processing ' + str(len(list_of_swcs)) + ' SWCs')
 	for each in list_of_swcs:
 		if len(each) < 3:
+			continue
+		code.interact(local=locals())
+		if each + '.obj' in list_of_objs:
+			print(each + ' OBJ already created, skipping')
 			continue
 		print(each)
 		# process = subprocess.Popen('sudo matlab -nodisplay -nodesktop -r \"swc2obj(each);quit;\"')
@@ -458,6 +463,20 @@ def swc2obj(path):
 			flatten.main('tempobj/', each)
 		except:
 			continue
+
+def obj2spin(path):
+	string = 'pcl_obj2pcd '
+	list_of_objs = glob.glob(path + '*.obj')
+	if not os.path.exists('./plc_spin_images/'):
+		os.makedirs('./plc_spin_images/')
+	for i in list_of_objs:
+		print i
+		string += i + ' ' + './plc_spin_images/' + os.path.basename(i)[0:-3] + 'pcd' + ' -copy_normals 1'
+		print string
+		os.system(string)
+		string = 'pcl_obj2pcd '
+
+
 
 
 test_suite()

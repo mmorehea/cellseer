@@ -29,6 +29,7 @@ from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier
 import time
 import subprocess
 import flatten
+import matplotlib.pyplot as plt
 import shutil
 
 
@@ -117,23 +118,22 @@ def kfold(data, labels, k):
 def import_csv_data(data_path, response_path):
 	data = np.genfromtxt(data_path, dtype=float, delimiter=',')
 	response = np.genfromtxt(response_path, dtype=str, delimiter=',')
-
+	aa = [i.split('_') for i in response]
+	names = ['p' + str(aa[i][0]) + '_c' + str(aa[i][1]) for i in range(len(aa))]
 	response = [x[0] for x in response]
 	response = np.asarray(response)
 	nans = [i for i, j in enumerate(data) if math.isnan(j[0])]
 	data = np.delete(data, nans, axis=0)
-
 	response = np.delete(response, nans, axis=0)
 	response = response.astype(int)
 	response[np.where(response == 9)] = 6
 	response[np.where(response == 2)] = 0
 	response[np.where(response == 3)] = 1
 	response[np.where(response == 4)] = 2
-	response[np.where(response == 6)] = 4
+	response[np.where(response == 6)] = 3
 	scaler = StandardScaler().fit(data)
 	data = scaler.transform(data)
-
-	return data, response
+	return data, response, names
 
 
 # /*
@@ -160,12 +160,28 @@ def plain_svm(data, response, kern='linear'):
 #  ██████  ██████  ██   ████ ██       ██████  ███████ ██  ██████  ██   ████ ███████ ██      ██ ██   ██    ██    ██   ██ ██ ██   ██
 # */
 @timeme
-def make_confusion_matrix(data, response, kern='linear'):
-	X_train, X_test, y_train, y_test = train_test_split(data, response)
-	classifier = svm.SVC(kernel=kern)
+def make_confusion_matrix(data, response, kern='linear', percent_train=.25):
+	X_train, X_test, y_train, y_test = train_test_split(data, response, train_size=percent_train)
+	print kern
+	classifier = svm.SVC(kernel=kern)  # KNeighborsClassifier(n_neighbors=1)   # svm.SVC(kernel=kern)
 	y_pred = classifier.fit(X_train, y_train).predict(X_test)
 	cm = confusion_matrix(y_test, y_pred)
 	print cm
+	plt.clf()
+	names = np.array(['Postnatel Day 2', 'Postnatel Day 3', 'Postnatel Day 4', 'Postnatel Day > 6'])
+	plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+	plt.title('Linear SVM at ' + str(percent_train * 100) + '% Population Trained (K=1)')
+	plt.colorbar()
+	tick_marks = np.arange(len(names))
+	plt.xticks(tick_marks, names, rotation=45)
+	plt.yticks(tick_marks, names)
+	plt.tight_layout()
+	plt.ylabel('True label')
+	plt.xlabel('Predicted label')
+	age = raw_input()
+	if age == 'l':
+		plt.savefig('svm.eps', format='eps', dpi=1200, bbox_inches='tight')
+		plt.show()
 
 
 # ██	   ██████   ██████
@@ -233,15 +249,32 @@ def grid(data, response):
 # ██   ██ ██
 # */
 @timeme
-def ap(data, response):
+def ap(data, response, names, show_graph=0):
 	af = cluster.AffinityPropagation().fit(data)
 	labels = af.labels_
 	clusternames = defaultdict(list)
+	cm = np.zeros([len(set(response)), len(set(labels))])
 	for i, label in enumerate(labels):
-		clusternames[label].append(response[i])
+		clusternames[label].append(names[i])
+		cm[response[i], label] += 1
 	# clusternames now holds a map from cluster label to list of sequence names
 	for k, v in clusternames.items():
 		print k, v
+	print cm
+	if show_graph:
+		y_names = np.array(['Postnatel Day 2', 'Postnatel Day 3', 'Postnatel Day 4', 'Postnatel Day > 6'])
+		plt.imshow(cm, interpolation='none', cmap=plt.cm.Blues)
+		plt.title('AP Stock Parameters')
+		# plt.colorbar()
+		tick_marks = np.arange(len(names))
+		plt.xticks(np.arange(max(labels) + 1), range(max(labels) + 1), rotation=45)
+		plt.yticks(tick_marks, names)
+		plt.tight_layout()
+		plt.ylabel('True label')
+		plt.xlabel('Predicted cluster label')
+		plt.savefig('cm_ap_high.pdf', format='pdf', dpi=1200, bbox_inches='tight')
+		plt.show()
+	return clusternames
 
 
 # /*
@@ -330,6 +363,34 @@ def radius_knn(data, response, rad):
 
 
 # /*
+# ██████  ██    ██ ██ ██      ██████           ██████ ██      ██    ██ ███████ ████████ ███████ ██████          ██ ███    ███  ██████  ███████
+# ██   ██ ██    ██ ██ ██      ██   ██         ██      ██      ██    ██ ██         ██    ██      ██   ██         ██ ████  ████ ██       ██
+# ██████  ██    ██ ██ ██      ██   ██         ██      ██      ██    ██ ███████    ██    █████   ██████          ██ ██ ████ ██ ██   ███ ███████
+# ██   ██ ██    ██ ██ ██      ██   ██         ██      ██      ██    ██      ██    ██    ██      ██   ██         ██ ██  ██  ██ ██    ██      ██
+# ██████   ██████  ██ ███████ ██████  ███████  ██████ ███████  ██████  ███████    ██    ███████ ██   ██ ███████ ██ ██      ██  ██████  ███████
+# */
+def build_cluster_images(cm, names, path_to_images):
+	failures = []
+	counter = 0
+	for row_number in cm:
+		row = cm[row_number]
+		counter += 1
+		foldername = './clusterFolder/cluster' + str(counter)
+		fname = 'cluster' + str(counter)
+		try:
+			os.mkdir(foldername)
+		except:
+			pass
+		for each in row:
+			try:
+				shutil.copy2('./images/' + each, foldername + '/' + each)
+			except:
+				failures.append(each)
+
+	print failures
+
+
+# /*
 # ████████ ███████ ███████ ████████
 #    ██    ██      ██         ██
 #    ██    █████   ███████    ██
@@ -338,13 +399,14 @@ def radius_knn(data, response, rad):
 # */
 def test_suite():
 	print("Starting Tests")
-	# print('Importing')
-	# data, response = import_csv_data('./encodings.csv', './junk2.csv')
+	print('Importing')
+	data, response, names = import_csv_data('./encodings.csv', './junk2.csv')
 	# kfold(data, response, 2)
 	# plain_svm(data, response, 'linear')
-	# make_confusion_matrix(data, response, 'linear')
-	# make_confusion_matrix(data, response, 'poly')
-	# make_confusion_matrix(data, response, 'rbf')
+	# cm = make_confusion_matrix(data, response, 'linear', .33)
+
+	cm = ap(data, response, names)
+	build_cluster_images(cm, names, './images/')
 	# # loo(data, response, 'linear', 3)
 	# # grid(data, response)
 	# ap(data, response)
@@ -353,7 +415,7 @@ def test_suite():
 	# kmeans(data, response)
 	# knn_classifier(data, response)
 	# radius_knn(data, response, 1000.0)
-	obj2spin('/home/mdm/Projects/cellseer/Fisher/objout/')
+	# obj2spin('/home/mdm/Projects/cellseer/Fisher/objout/')
 
 
 # /*
@@ -464,6 +526,14 @@ def swc2obj(path):
 		except:
 			continue
 
+
+# /*
+#  ██████  ██████       ██ ██████  ███████ ██████  ██ ███    ██
+# ██    ██ ██   ██      ██      ██ ██      ██   ██ ██ ████   ██
+# ██    ██ ██████       ██  █████  ███████ ██████  ██ ██ ██  ██
+# ██    ██ ██   ██ ██   ██ ██           ██ ██      ██ ██  ██ ██
+#  ██████  ██████   █████  ███████ ███████ ██      ██ ██   ████
+# */
 def obj2spin(path):
 	string = 'pcl_obj2pcd '
 	list_of_objs = glob.glob(path + '*.obj')
@@ -475,8 +545,6 @@ def obj2spin(path):
 		print string
 		os.system(string)
 		string = 'pcl_obj2pcd '
-
-
 
 
 test_suite()

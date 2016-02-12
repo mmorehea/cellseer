@@ -8,6 +8,7 @@
 #  ██████ ███████ ███████ ███████ ███████ ███████ ███████ ██   ██
 # Written by Michael Morehead
 # WVU Center for Neuroscience, 2016
+# A library for processing SWCs and OBJs of neuron models
 import matlab.engine
 import numpy as np
 import code

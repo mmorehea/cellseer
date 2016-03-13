@@ -28,10 +28,13 @@ from sklearn.preprocessing import StandardScaler
 from collections import defaultdict
 from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier
 import time
-import subprocess
 import flatten
 import matplotlib.pyplot as plt
 import shutil
+import pcl
+from functools import partial
+from multiprocessing.dummy import Pool
+from subprocess import call
 
 
 # /*
@@ -148,7 +151,7 @@ def import_csv_data(data_path, response_path):
 @timeme
 def plain_svm(data, response, kern='linear'):
 	clf = svm.SVC(kernel=kern)
-	scores = cross_validation.cross_val_score(clf, data, response)
+	scores = cross_validation.cross_val_score(clf, data, response, cv=10)
 	print scores
 	print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
 
@@ -167,6 +170,7 @@ def make_confusion_matrix(data, response, kern='linear', percent_train=.25):
 	classifier = svm.SVC(kernel=kern)  # KNeighborsClassifier(n_neighbors=1)   # svm.SVC(kernel=kern)
 	y_pred = classifier.fit(X_train, y_train).predict(X_test)
 	cm = confusion_matrix(y_test, y_pred)
+	# code.interact(local=locals())
 	print cm
 	plt.clf()
 	names = np.array(['Postnatel Day 2', 'Postnatel Day 3', 'Postnatel Day 4', 'Postnatel Day > 6'])
@@ -179,9 +183,9 @@ def make_confusion_matrix(data, response, kern='linear', percent_train=.25):
 	plt.tight_layout()
 	plt.ylabel('True label')
 	plt.xlabel('Predicted label')
-	age = raw_input()
+	age = raw_input("Press l to save figure")
 	if age == 'l':
-		plt.savefig('svm.eps', format='eps', dpi=1200, bbox_inches='tight')
+		plt.savefig('svm.png', bbox_inches='tight')
 		plt.show()
 
 
@@ -406,8 +410,8 @@ def test_suite():
 	# plain_svm(data, response, 'linear')
 	# cm = make_confusion_matrix(data, response, 'linear', .33)
 
-	cm = ap(data, response, names)
-	build_cluster_images(cm, names, './images/')
+	# cm = ap(data, response, names)
+	# build_cluster_images(cm, names, './images/')
 	# # loo(data, response, 'linear', 3)
 	# # grid(data, response)
 	# ap(data, response)
@@ -417,6 +421,8 @@ def test_suite():
 	# knn_classifier(data, response)
 	# radius_knn(data, response, 1000.0)
 	# obj2spin('/home/mdm/Projects/cellseer/Fisher/objout/')
+	# readPCL('./plc_spin_images/')
+	split_and_write_spin_images('./spin_images/', 5)
 
 
 # /*
@@ -444,9 +450,15 @@ def get_file_len(fname):
 def split_and_write_spin_images(path, percent_to_pick):
 	list_of_spins = glob.glob(path + '*.pcdspinImages.bin')
 	cnt = 0
+	list_of_splits = glob.glob('./split_spin/*')
+	list_of_splits = [os.path.basename(x) for x in list_of_splits]
+
 	for each in list_of_spins:
+		if os.path.basename(each) + '_vectorspicked.csv' in list_of_splits:
+			continue
 		print each
 		print cnt
+		code.interact(local=locals())
 		cnt += 1
 
 		spin_file = open(each)
@@ -457,24 +469,28 @@ def split_and_write_spin_images(path, percent_to_pick):
 		spin_file_lines = np.asarray(spin_file_lines)
 		spin_file_lines = spin_file_lines.astype('float')
 		xx, yy = spin_file_lines.shape
-		xToPick = 2000
+		xToPick = .05 * xx
+
 		picks = np.random.choice(xx, xToPick, replace=False)
 
 		# parse file name
-		age = each.split('/')[-1].split('_')[0][1:]
+		# age = each.split('/')[-1].split('_')[0][1:]
 		# cell = each.split('/')[-1].split('_')[2].split('.')[1:]
-		cell = each.split('/')[-1].split('_')[2].split('.')[0][1:]
-		print age, ' ', cell
+		# cell = each.split('/')[-1].split('_')[2].split('.')[0][1:]
+
+		name = os.path.basename(each)
+		# print age, ' ', cell
 		nonPick = np.setdiff1d(np.asarray(range(0, xx)), picks)
-		if not os.path.exists('./picked/'):
-			os.makedirs('./picked/')
+		if not os.path.exists('./split_spin/'):
+			os.makedirs('./split_spin/')
+
 		spin_file_lines_picked = spin_file_lines[picks]
-		fileName = './picked1/' + age + '_' + cell + '_vectorspicked.csv'
+		fileName = './split_spin/' + name + '_vectorspicked.csv'
 		np.savetxt(fileName, spin_file_lines_picked, delimiter=',')
 		spin_file_lines_picked = None
 
 		spin_file_lines_notpicked = spin_file_lines[nonPick]
-		fileName = './picked1/' + age + '_' + cell + '_vectorsnotpicked.csv'
+		fileName = './split_spin/' + name + '_vectorsnotpicked.csv'
 		np.savetxt(fileName, spin_file_lines_notpicked, delimiter=',')
 		spin_file_lines_notpicked = None
 
@@ -529,23 +545,86 @@ def swc2obj(path):
 
 
 # /*
-#  ██████  ██████       ██ ██████  ███████ ██████  ██ ███    ██
-# ██    ██ ██   ██      ██      ██ ██      ██   ██ ██ ████   ██
-# ██    ██ ██████       ██  █████  ███████ ██████  ██ ██ ██  ██
-# ██    ██ ██   ██ ██   ██ ██           ██ ██      ██ ██  ██ ██
-#  ██████  ██████   █████  ███████ ███████ ██      ██ ██   ████
+#  ██████  ██████       ██ ██████  ██████   ██████ ██████
+# ██    ██ ██   ██      ██      ██ ██   ██ ██      ██   ██
+# ██    ██ ██████       ██  █████  ██████  ██      ██   ██
+# ██    ██ ██   ██ ██   ██ ██      ██      ██      ██   ██
+#  ██████  ██████   █████  ███████ ██       ██████ ██████
 # */
-def obj2spin(path):
+def obj2pcd(path):
 	string = 'pcl_obj2pcd '
 	list_of_objs = glob.glob(path + '*.obj')
-	if not os.path.exists('./plc_spin_images/'):
-		os.makedirs('./plc_spin_images/')
+	if not os.path.exists('./pcds/'):
+		os.makedirs('./pcds/')
 	for i in list_of_objs:
 		print i
-		string += i + ' ' + './plc_spin_images/' + os.path.basename(i)[0:-3] + 'pcd' + ' -copy_normals 1'
+		string += i + ' ' + './pcds/' + os.path.basename(i)[0:-3] + 'pcd' + ' -copy_normals 1'
 		print string
 		os.system(string)
 		string = 'pcl_obj2pcd '
+
+
+# /*
+# ██████   ██████ ██      ██████  ███████ ██████  ██ ███    ██
+# ██   ██ ██      ██           ██ ██      ██   ██ ██ ████   ██
+# ██████  ██      ██       █████  ███████ ██████  ██ ██ ██  ██
+# ██      ██      ██      ██           ██ ██      ██ ██  ██ ██
+# ██       ██████ ███████ ███████ ███████ ██      ██ ██   ████
+# */
+def pcl2spin(path):
+	string = '/home/mdm/Projects/cellseer_build/pcd_spin_image '
+	if not os.path.exists('./spin_images/'):
+		os.makedirs('./spin_images/')
+	list_of_spins = glob.glob(path + '*.bin')
+	list_of_pcl = glob.glob(path + '*.pcd')
+	compare_list_of_spins = [x[:-14] for x in list_of_spins]
+	set_spins = set(compare_list_of_spins)
+	set_pcl = set(list_of_pcl)
+	set_to_do = set_pcl - set_spins
+	sorted_files = sorted(set_to_do, key=os.path.getsize)
+	print(str(len(set_to_do)) + 's PLCs to convert')
+	commands_to_run = [string + x for x in sorted_files]
+	pool = Pool(4)
+
+	for i, returncode in enumerate(pool.imap(partial(call, shell=True), commands_to_run)):
+		if returncode != 0:
+			print("%d command failed: %d" % (i, returncode))
+		else:
+			print("%d command done! %d " % (i, returncode))
+	# code.interact(local=locals())
+	# for each in list_of_pcl:
+	# 	if each not in list_of_spins:
+	# 		code.interact(local=locals())
+	# 		print each
+	# 		string += each
+	# 		print string
+	# 		os.system(string)
+	# 		string = '/home/mdm/Projects/cellseer_build/pcd_spin_image '
+
+
+# def build_bow(path):
+# /*
+#  ██████ ██      ███████  █████  ███    ██ ███████ ██████  ██ ███    ██ ███████
+# ██      ██      ██      ██   ██ ████   ██ ██      ██   ██ ██ ████   ██ ██
+# ██      ██      █████   ███████ ██ ██  ██ ███████ ██████  ██ ██ ██  ██ ███████
+# ██      ██      ██      ██   ██ ██  ██ ██      ██ ██      ██ ██  ██ ██      ██
+#  ██████ ███████ ███████ ██   ██ ██   ████ ███████ ██      ██ ██   ████ ███████
+# */
+def clean_spins(path):
+	l = glob.glob(path)
+	for num, each in enumerate(l):
+		print each
+		print num
+		print len(l)
+		xx = np.genfromtxt(each, delimiter=',')
+		xx = xx[:, 1:-1]
+		np.savetxt(each, xx, delimiter=",")
+
+
+
+
+
+
 
 
 test_suite()

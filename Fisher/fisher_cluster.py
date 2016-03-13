@@ -663,11 +663,4 @@ def clean_spins(path):
 		np.savetxt(each, xx, delimiter=",")
 
 
-
-
-
-
-
-
-
 test_suite()

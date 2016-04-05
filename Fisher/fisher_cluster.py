@@ -9,6 +9,7 @@
 # Written by Michael Morehead
 # WVU Center for Neuroscience, 2016
 # A library for processing SWCs and OBJs of neuron models
+import sys
 import matlab.engine
 import numpy as np
 import code
@@ -418,15 +419,15 @@ def build_cluster_images(cm, names, path_to_images):
 def test_suite():
 	print("Starting Tests")
 	print('Importing')
-	data, response, names = import_csv_data('./encodings.csv', './junk2.csv')
+	# data, response, names = import_csv_data('./encodings.csv', './junk2.csv')
 	# kfold(data, response, 2)
 	# plain_svm(data, response, 'linear')
 	# cm = make_confusion_matrix(data, response, 'linear', .33)
 
 	# cm = ap(data, response, names)
 	# build_cluster_images(cm, names, './images/')
-	cm = ap(data, response, names)
-	build_cluster_images(cm, names, './images/')
+	# cm = ap(data, response, names)
+	# build_cluster_images(cm, names, './images/')
 	# # loo(data, response, 'linear', 3)
 	# # grid(data, response)
 	# ap(data, response)
@@ -437,8 +438,8 @@ def test_suite():
 	# radius_knn(data, response, 1000.0)
 	# obj2spin('/home/mdm/Projects/cellseer/Fisher/objout/')
 	# readPCL('./plc_spin_images/')
-	split_and_write_spin_images('./spin_images/', 5)
-
+	# split_and_write_spin_images('./spin_images/', 5)
+	# clean_spins('./spin_images/*')
 
 
 # /*
@@ -475,7 +476,7 @@ def split_and_write_spin_images(path, percent_to_pick):
 			continue
 		print each
 		print cnt
-		code.interact(local=locals())
+		# code.interact(local=locals())
 
 	for each in list_of_spins:
 		print each
@@ -568,11 +569,12 @@ def swc2obj(path):
 		os.makedirs('./convertedOBJs/')
 	list_of_swcs = glob.glob(os.path.join(path, '*.swc'))
 	list_of_objs = glob.glob('./objout/*.obj')
+
 	print('Processing ' + str(len(list_of_swcs)) + ' SWCs')
 	for each in list_of_swcs:
 		if len(each) < 3:
 			continue
-		code.interact(local=locals())
+		# code.interact(local=locals())
 		if each + '.obj' in list_of_objs:
 			print(each + ' OBJ already created, skipping')
 			continue
@@ -586,14 +588,13 @@ def swc2obj(path):
 
 
 # /*
-
-#  ██████  ██████       ██ ██████  ███████ ██████  ██ ███    ██
-# ██    ██ ██   ██      ██      ██ ██      ██   ██ ██ ████   ██
-# ██    ██ ██████       ██  █████  ███████ ██████  ██ ██ ██  ██
-# ██    ██ ██   ██ ██   ██ ██           ██ ██      ██ ██  ██ ██
-#  ██████  ██████   █████  ███████ ███████ ██      ██ ██   ████
+#  ██████  ██████       ██ ██████  ██████   ██████ ██████
+# ██    ██ ██   ██      ██      ██ ██   ██ ██      ██   ██
+# ██    ██ ██████       ██  █████  ██████  ██      ██   ██
+# ██    ██ ██   ██ ██   ██ ██      ██      ██      ██   ██
+#  ██████  ██████   █████  ███████ ██       ██████ ██████
 # */
-def obj2spin(path):
+def obj2pcd(path):
 	string = 'pcl_obj2pcd '
 	list_of_objs = glob.glob(path + '*.obj')
 	if not os.path.exists('./plc_spin_images/'):
@@ -607,13 +608,13 @@ def obj2spin(path):
 
 
 # /*
-# ██████   ██████ ██      ██████  ███████ ██████  ██ ███    ██
-# ██   ██ ██      ██           ██ ██      ██   ██ ██ ████   ██
-# ██████  ██      ██       █████  ███████ ██████  ██ ██ ██  ██
-# ██      ██      ██      ██           ██ ██      ██ ██  ██ ██
-# ██       ██████ ███████ ███████ ███████ ██      ██ ██   ████
+# ██████   ██████ ██████  ██████  ███████ ██████  ██ ███    ██
+# ██   ██ ██      ██   ██      ██ ██      ██   ██ ██ ████   ██
+# ██████  ██      ██   ██  █████  ███████ ██████  ██ ██ ██  ██
+# ██      ██      ██   ██ ██           ██ ██      ██ ██  ██ ██
+# ██       ██████ ██████  ███████ ███████ ██      ██ ██   ████
 # */
-def pcl2spin(path):
+def pcd2spin(path):
 	string = '/home/mdm/Projects/cellseer_build/pcd_spin_image '
 	if not os.path.exists('./spin_images/'):
 		os.makedirs('./spin_images/')
@@ -660,7 +661,38 @@ def clean_spins(path):
 		print len(l)
 		xx = np.genfromtxt(each, delimiter=',')
 		xx = xx[:, 1:-1]
-		np.savetxt(each, xx, delimiter=",")
+		np.savetxt('./cleaned_spin/' + os.path.basename(each), xx, delimiter=",")
 
 
-test_suite()
+def main(argv):
+	print("Starting Tests")
+	p = argv[1]
+	print("Beginning to work on: " + p)
+	#swc2obj(p)
+	#obj2spin(p)
+	#pcd2spin(p)
+	clean_spin(p)
+	# data, response, names = import_csv_data('./encodings.csv', './junk2.csv')
+	# kfold(data, response, 2)
+	# plain_svm(data, response, 'linear')
+	# cm = make_confusion_matrix(data, response, 'linear', .33)
+
+	# cm = ap(data, response, names)
+	# build_cluster_images(cm, names, './images/')
+	# cm = ap(data, response, names)
+	# build_cluster_images(cm, names, './images/')
+	# # loo(data, response, 'linear', 3)
+	# # grid(data, response)
+	# ap(data, response)
+	# # mean_shift(data, response)
+	# # dbscan(data, response)
+	# kmeans(data, response)
+	# knn_classifier(data, response)
+	# radius_knn(data, response, 1000.0)
+	# obj2spin('/home/mdm/Projects/cellseer/Fisher/objout/')
+	# readPCL('./plc_spin_images/')
+	# split_and_write_spin_images('./spin_images/', 5)
+	# clean_spins('./spin_images/*')
+
+if __name__ == "__main__":
+	main(sys.argv)
